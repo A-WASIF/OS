@@ -15,7 +15,6 @@ void loader_cleanup() {
  * Load and run the ELF executable file
  */
 void load_and_run_elf(char** argv) {
-  // printf("Hello\n");
   fd = open(argv[1], O_RDONLY);
   // 1. Load entire binary content into the memory from the ELF file.
 
