@@ -7,6 +7,6 @@ int fib(int n) {
 }
 
 int _start() {
-	int val = fib(10);
+	int val = fib(40);
 	return val;
 }
