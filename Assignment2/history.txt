@@ -1,4 +1,2 @@
-Command: echo hello, PID: 747, Execution Time: 0.001750 seconds
-Command: ps aux, PID: 751, Execution Time: 0.007552 seconds
-Command: ps eaf, PID: 753, Execution Time: 0.003679 seconds
-Command: rm history.txt, PID: 757, Execution Time: 0.006649 seconds
+Command: cat months.txt | head -6 | sort | grep january, PID: 2433, Execution Time: 0.008919 seconds
+Command: cat months.txt | head -6 | sort | grep January, PID: 2438, Execution Time: 0.009308 seconds
