@@ -25,7 +25,7 @@ Calling _start function in fib.c
 void run_program(int (*_start)());
 
 
-
+// this is main function
 int main(int argc, char** argv){
   if (argc != 2) {
     printf("Usage: %s <ELF Executable> \n", argv[0]);
@@ -33,6 +33,7 @@ int main(int argc, char** argv){
   }
   load_and_run_elf(argv);
   loader_cleanup();
+  printf("END!");
   return 0;
 }
 
@@ -105,6 +106,11 @@ void loop_through_phdr(Elf32_Ehdr *ehdr, Elf32_Phdr *phdr){
 
       run_program(_start);
 
+      if (munmap(virtual_mem, phdr[i].p_memsz) == -1){
+          perror("Error unmapping memory");
+          loader_cleanup();
+          exit(1);
+        }
       break;
     }
   }
