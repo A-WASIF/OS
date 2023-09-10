@@ -1,2 +1,9 @@
-Command: cat months.txt | head -6 | sort | grep january, PID: 2433, Execution Time: 0.008919 seconds
-Command: cat months.txt | head -6 | sort | grep January, PID: 2438, Execution Time: 0.009308 seconds
+Command: #!/bin/bash
+# This is a simple shell script
+
+echo "Hello World!"
+echo "How are you!"
+./fib
+gcc helloworld.c, PID: 2918, Execution Time: 3.194360 seconds
+Command: ./a.ou, PID: 2925, Execution Time: 0.003060 seconds
+Command: ./a.out, PID: 2927, Execution Time: 0.009327 seconds
