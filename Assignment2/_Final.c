@@ -24,6 +24,7 @@ int launch(char *input_command, struct CommandHistory *history, int *history_cou
 char *userinput();
 void printHistory();
 void tempHistory();
+char * readfl(char *filename);
 
 
 int main(){
@@ -42,6 +43,8 @@ int main(){
         promtdisplay(current_dir);
         input = userinput();
 
+        // printf("%s\n", input + 2);
+
         if(strcmp(input, "exit") == 0){ 
             writeHistory(history, history_count);
             printf("\n************************************************\n\n");
@@ -56,8 +59,21 @@ int main(){
             continue;
         }
 
-        execution = launch(input, history, &history_count);
-        free(input);
+        else if(strlen(input) >= 3 && strcmp(input + strlen(input) - 3, ".sh") == 0){
+            // printf("This is .sh file\n");
+            char *str = input + 2;
+            char *fileContent = readfl(str);
+            if (fileContent != NULL) {
+                execution = launch(fileContent, history, &history_count);
+                free(fileContent);
+            }
+            free(input);
+        }
+
+        else{
+            execution = launch(input, history, &history_count);
+            free(input);
+        }
     }
 
     return 0;
@@ -92,7 +108,7 @@ void run_command(char *input_command, struct CommandHistory *history, int *histo
         perror("Execution command error");
         exit(EXIT_FAILURE);
     }
-    
+
     else{
         // In the parent process wait for the child
         waitpid(pid, &status, 0);
@@ -130,7 +146,7 @@ void writeHistory(struct CommandHistory *history, int history_count){
     fclose(fd);
 }
 
-// Checking inputs ans calling for Execution
+// Checking inputs and calling for Execution
 int launch(char *input_command, struct CommandHistory *history, int *history_count) {
     // Add the command to history
     // for tracing the history
@@ -213,4 +229,42 @@ void tempHistory(){
         fclose(fd);
 
         return;
+}
+
+char *readfl(char *filename) {
+    FILE *file = fopen(filename, "r");
+
+    if (file == NULL) {
+        fprintf(stderr, "Error opening file: %s\n", filename);
+        return NULL;
+    }
+
+    // Initialize variables to read lines from the file
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    char *fileContent = NULL;
+
+    // Read lines from the file and append them to fileContent
+    while ((read = getline(&line, &len, file)) != -1) {
+        if (fileContent == NULL) {
+            fileContent = strdup(line);
+        } else {
+            size_t oldLen = strlen(fileContent);
+            size_t newLen = oldLen + strlen(line);
+            fileContent = realloc(fileContent, newLen + 1);
+            if (fileContent == NULL) {
+                perror("Memory allocation failed");
+                free(line);
+                fclose(file);
+                return NULL;
+            }
+            strcat(fileContent, line);
+        }
+    }
+
+    free(line);
+    fclose(file);
+
+    return fileContent;
 }

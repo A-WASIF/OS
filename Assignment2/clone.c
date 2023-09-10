@@ -108,7 +108,7 @@ void run_command(char *input_command, struct CommandHistory *history, int *histo
         perror("Execution command error");
         exit(EXIT_FAILURE);
     }
-    
+
     else{
         // In the parent process wait for the child
         waitpid(pid, &status, 0);
@@ -146,7 +146,7 @@ void writeHistory(struct CommandHistory *history, int history_count){
     fclose(fd);
 }
 
-// Checking inputs ans calling for Execution
+// Checking inputs and calling for Execution
 int launch(char *input_command, struct CommandHistory *history, int *history_count) {
     // Add the command to history
     // for tracing the history
