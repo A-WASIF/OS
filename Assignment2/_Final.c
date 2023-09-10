@@ -51,6 +51,7 @@ int main(){
             printHistory();
             printf("\n************************************************\n");
             printf("Shell Terminated!\n");
+            free(input);
             break;
         }
 
