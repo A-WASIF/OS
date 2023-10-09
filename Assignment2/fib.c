@@ -18,6 +18,5 @@ int main() {
     } else {
         printf("(%d)th Fibonacci number = %d\n", n, fibonacci(n));
     }
-
     return 0;
 }

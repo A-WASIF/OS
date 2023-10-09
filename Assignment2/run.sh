@@ -4,4 +4,5 @@
 echo "Hello World!"
 echo "How are you!"
 ./fib
-gcc helloworld.c
+gcc -o hello helloworld.c
+./hello
