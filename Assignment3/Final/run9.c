@@ -22,22 +22,9 @@ typedef struct {
     double wait_time;
 } HistoryEntry;
 
-void addToHistory(HistoryEntry* history, char* command, pid_t pid, int priority, int index) {
-    history[index].command = strdup(command);
-    history[index].pid = pid;
-    history[index].priority = priority;
-}
+void addToHistory(HistoryEntry* history, char* command, pid_t pid, int priority, int index);
 
-void printHistory(HistoryEntry* history, int historyIndex) {
-    printf("\nCommand History(Command, Pid, Execution Time, Waiting Time):\n");
-    printf("*****************************************\n");
-    for (int i = 0; i < historyIndex; i++) {
-        printf("%d: %s      %u      %.3f millisec.     %.3f millisec. \n", i + 1, history[i].command, history[i].pid, history[i].execution_time, history[i].wait_time);
-        
-        free(history[i].command);
-    }
-    printf("*****************************************\n");
-}
+void printHistory(HistoryEntry* history, int historyIndex);
 
 // A linked list (LL) node to store a queue entry
 typedef struct QNode {
@@ -59,7 +46,13 @@ struct Queue {
 QNode* newNode(int k, char* command, int priority, double exe_time)
 {
 	QNode* temp = (QNode*) malloc (sizeof(QNode));
-	temp->pid = k;
+    
+    if (temp == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+	
+    temp->pid = k;
     temp->state = 0;
     temp->priority = priority;
     temp->command = command;
@@ -72,14 +65,26 @@ QNode* newNode(int k, char* command, int priority, double exe_time)
 struct Queue* createQueue()
 {
 	struct Queue* q  = (struct Queue*)malloc(sizeof(struct Queue));
+    
+    if (q == NULL) { 
+		perror("malloc");
+		exit(EXIT_FAILURE); 
+	}
+
 	q->front = q->rear = NULL;
 	return q;
 }
 
+// Append the new process to the back of the Queue
 void enQueue(struct Queue* q, int k, char* command, int priority, double exe_time)
 {
 	// Create a new LL node
 	QNode* temp = newNode(k, command, priority, exe_time);
+
+    if (temp == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed for new node.\n");
+        return;
+    }
 
 	// If queue is empty, then new node is front and rear
 	// both
@@ -93,6 +98,7 @@ void enQueue(struct Queue* q, int k, char* command, int priority, double exe_tim
 	q->rear = temp;
 }
 
+// Returns pointer to the first element of the queue and remove it from queue
 QNode* deQueue(struct Queue* q)
 {
     pid_t id = q->front->pid;
@@ -110,22 +116,14 @@ QNode* deQueue(struct Queue* q)
     return temp;
 }
 
+// Check if Queue is Empty
 bool isEmpty(struct Queue* q)
 {
     return (q->front == NULL);
 }
 
 // Function to print all elements in the queue
-void printQueue(struct Queue* q) {
-    QNode* current = q->front;
-    printf("Elements of Queue %d (PID, Command, Priority): ", current->priority);
-    while (current != NULL) {
-        printf("(%d, %s) ", current->pid, current->command);
-        current = current->next;
-    }
-    printf("\n");
-}
-
+void printQueue(struct Queue* q);
 
 typedef struct {
     sem_t mutex;
@@ -135,103 +133,31 @@ typedef struct {
     struct Queue q4;
 } shm_t;
 
-
-int checkforpriority(char* input){
-    int length = strlen(input);
-
-    if(input[length - 2] == ' ' && isdigit(input[length - 1])) return 1;
-    return 0;
-}
+int checkforpriority(char* input);
 
 void signal_handler(int signum);
 
 // Take input from Users
-char *userinput(){
-    int size = 100;
-    char *command = malloc(sizeof(char) * size);
-    if (command == NULL) {
-        printf("%s\n", "Could not allocate memory!! Try again");
-        command[0] = '\0';
-        return command;
-    }
+char *userinput();
 
-    else{
-        printf("SimpleShell$ ");        
-        fgets(command, size, stdin);
-        command[strcspn(command, "\n")] = '\0';
-    }
-    
-    return command;
-}
-
-void launch(char *exact_command){
-    int check = execlp(exact_command, exact_command, NULL);
-
-    if(check == -1) {
-        printf("No Such File Found or File is Not Executable: %s\n", exact_command);
-        perror("execlp");
-    }
-}
+void launch(char *exact_command);
 
 void printAllQueue(struct Queue* q1, struct Queue* q2, struct Queue* q3, struct Queue* q4);
 
-int min(int a, int b){
-    return a < b ? a : b;
-}
+int min(int a, int b);
 
 void scheduler(int* numProcess, int NCPU, double TSLICE, struct Queue* q, struct Queue* Q, int *Qnum, HistoryEntry history[], int historyIndex);
 
-void initializeWaitTime(HistoryEntry history[], int historyIndex, int priority, double TSLICE, int prev_numProcess){
-    for(int i = 0; i < historyIndex; i++){
-        if(history[i].priority == priority) history[i].wait_time = prev_numProcess * TSLICE;
-    }
-}
+void initializeWaitTime(HistoryEntry history[], int historyIndex, int priority, double TSLICE, int prev_numProcess);
 
-void calWaitTime(struct Queue* q, double TSLICE, int NCPU, HistoryEntry history[], int historyIndex){
-    int ind = 0;
-    QNode* current = q->front;
-    while (current != NULL) {
-        for(int i = 0; i < historyIndex; i++){
-            if(current->pid == history[i].pid) history[i].wait_time += (ind / NCPU) * TSLICE;
-        }
-        current = current->next;
-        ++ind;
-    }
-}
+void calWaitTime(struct Queue* q, double TSLICE, int NCPU, HistoryEntry history[], int historyIndex);
 
 int numProcess1 = 0;
 int numProcess2 = 0;
 int numProcess3 = 0;
 int numProcess4 = 0;
 
-void prepAndLaunch_schduler(struct Queue* q1, struct Queue* q2, struct Queue* q3, struct Queue* q4, double TSLICE, int NCPU, HistoryEntry history[], int historyIndex){
-    printf("Number of process in q1: %d\n", numProcess1);
-    printf("Number of process in q2: %d\n", numProcess2);
-    printf("Number of process in q3: %d\n", numProcess3);
-    printf("Number of process in q4: %d\n", numProcess4);
-
-    initializeWaitTime(history, historyIndex, 1, TSLICE, 0);
-    initializeWaitTime(history, historyIndex, 2, TSLICE, numProcess1 / NCPU);
-    initializeWaitTime(history, historyIndex, 3, TSLICE, (numProcess2 + numProcess1) / NCPU);
-    initializeWaitTime(history, historyIndex, 4, TSLICE, (numProcess3 + numProcess2 + numProcess1) / NCPU);
-
-    printAllQueue(q1, q2, q3, q4);
-    calWaitTime(q1, TSLICE, NCPU, history, historyIndex);
-    scheduler(&numProcess1, NCPU, TSLICE, q1, q2, &numProcess2, history, historyIndex);
-
-    printAllQueue(q1, q2, q3, q4);
-    calWaitTime(q2, TSLICE, NCPU, history, historyIndex);
-    scheduler(&numProcess2, NCPU, TSLICE, q2, q3, &numProcess3, history, historyIndex);
-
-    printAllQueue(q1, q2, q3, q4);
-    calWaitTime(q3, TSLICE, NCPU, history, historyIndex);
-    scheduler(&numProcess3, NCPU, TSLICE, q3, q4, &numProcess4, history, historyIndex);
-
-    printAllQueue(q1, q2, q3, q4);
-    calWaitTime(q4, TSLICE, NCPU, history, historyIndex);
-    scheduler(&numProcess4, NCPU, TSLICE, q4, q1, &numProcess1, history, historyIndex);
-
-}
+void prepAndLaunch_schduler(struct Queue* q1, struct Queue* q2, struct Queue* q3, struct Queue* q4, double TSLICE, int NCPU, HistoryEntry history[], int historyIndex);
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
@@ -264,7 +190,12 @@ int main(int argc, char *argv[]) {
     }
 
     // Initialize the semaphore
-    sem_init(&shm->mutex, 1, 0);
+    sem_init(&shm->mutex, 1, 1);
+
+    if (sem_init(&shm->mutex, 1, 1) == -1) {
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
 
     char *input;
    
@@ -286,10 +217,14 @@ int main(int argc, char *argv[]) {
     while(true){
         input = userinput();
         
-        if(strcmp(input, "end") == 0) break;
+        if(strcmp(input, "exit") == 0) break;
 
         else if(strcmp(input, "run") == 0){
-            prepAndLaunch_schduler(q1, q2, q3, q4, TSLICE, NCPU, history, historyIndex);
+            sem_wait(&shm->mutex);
+
+            while(!isEmpty(q1) || !isEmpty(q2) || !isEmpty(q3) || !isEmpty(q4)) prepAndLaunch_schduler(q1, q2, q3, q4, TSLICE, NCPU, history, historyIndex);
+
+            sem_post(&shm->mutex);
         }
         
         else if(strncmp(input, "submit ", 7) != 0){
@@ -308,6 +243,10 @@ int main(int argc, char *argv[]) {
                 int length = end_position - start_position;
 
                 exact_command = (char *)malloc(length + 1); // Allocate memory for exact_command
+                if (exact_command == NULL) {
+                    perror("malloc");
+                    exit(EXIT_FAILURE);
+                }
                 strncpy(exact_command, input + start_position, length);
                 exact_command[length] = '\0';
             }
@@ -333,7 +272,6 @@ int main(int argc, char *argv[]) {
                 addToHistory(history, exact_command, create_process, priority, historyIndex);
                 historyIndex++;
                 
-                // sem_wait(&shm->mutex);
                 if(priority == 1){
                     enQueue(q1, create_process, exact_command, priority, 0);
                     ++numProcess1;
@@ -353,7 +291,6 @@ int main(int argc, char *argv[]) {
                     enQueue(q4, create_process, exact_command, priority, 0);
                     ++numProcess4;
                 }
-                // sem_post(&shm->mutex);
             }
 
             else{
@@ -373,9 +310,78 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void signal_handler(int signum) {
-    printf("\nCtrl+C detected.\n");
-    exit(0);
+int min(int a, int b){
+    return a < b ? a : b;
+}
+
+int checkforpriority(char* input) {
+    int length = strlen(input);
+
+    if(input[length - 2] == ' ' && isdigit(input[length - 1])) return 1;
+    return 0;
+}
+
+void addToHistory(HistoryEntry* history, char* command, pid_t pid, int priority, int index) {
+    history[index].command = strdup(command);
+    history[index].pid = pid;
+    history[index].priority = priority;
+}
+
+void printHistory(HistoryEntry* history, int historyIndex) {
+    printf("\nCommand History(Command, Pid, Execution Time, Waiting Time):\n");
+    printf("*****************************************\n");
+    for (int i = 0; i < historyIndex; i++) {
+        printf("%d: %s      %u      %.3f millisec.     %.3f millisec. \n", i + 1, history[i].command, history[i].pid, history[i].execution_time, history[i].wait_time);
+        
+        free(history[i].command);
+    }
+    printf("*****************************************\n");
+}
+
+void initializeWaitTime(HistoryEntry history[], int historyIndex, int priority, double TSLICE, int prev_numProcess){
+    for(int i = 0; i < historyIndex; i++){
+        if(history[i].priority == priority) history[i].wait_time = prev_numProcess * TSLICE;
+    }
+}
+
+void calWaitTime(struct Queue* q, double TSLICE, int NCPU, HistoryEntry history[], int historyIndex){
+    int ind = 0;
+    QNode* current = q->front;
+    while (current != NULL) {
+        for(int i = 0; i < historyIndex; i++){
+            if(current->pid == history[i].pid) history[i].wait_time += (ind / NCPU) * TSLICE;
+        }
+        current = current->next;
+        ++ind;
+    }
+}
+
+char *userinput(){
+    int size = 100;
+    char *command = malloc(sizeof(char) * size);
+    if (command == NULL) {
+        printf("%s\n", "Could not allocate memory!! Try again");
+        command[0] = '\0';
+        return command;
+    }
+
+    else{
+        printf("SimpleShell$ ");        
+        fgets(command, size, stdin);
+        command[strcspn(command, "\n")] = '\0';
+    }
+    
+    return command;
+}
+
+void printQueue(struct Queue* q) {
+    QNode* current = q->front;
+    printf("Elements of Queue %d (PID, Command, Priority): ", current->priority);
+    while (current != NULL) {
+        printf("(%d, %s) ", current->pid, current->command);
+        current = current->next;
+    }
+    printf("\n");
 }
 
 void printAllQueue(struct Queue* q1, struct Queue* q2, struct Queue* q3, struct Queue* q4){
@@ -399,6 +405,19 @@ void printAllQueue(struct Queue* q1, struct Queue* q2, struct Queue* q3, struct 
     if(!isEmpty(q4)) printQueue(q4);
     printf("*****************************************\n");
     printf("\n");
+}
+
+void launch(char *exact_command){
+    int check = execlp(exact_command, exact_command, NULL);
+
+    if(check == -1) {
+        printf("No Such File Found or File is Not Executable: %s\n", exact_command);
+        perror("execlp");
+    }
+}
+
+void signal_handler(int signum) {
+    printf("\nCtrl+C detected.\n");
 }
 
 void scheduler(int* numProcess, int NCPU, double TSLICE, struct Queue* q, struct Queue* Q, int *Qnum, HistoryEntry history[], int historyIndex){
@@ -458,4 +477,33 @@ void scheduler(int* numProcess, int NCPU, double TSLICE, struct Queue* q, struct
             printf("\n");
         }
     }
+}
+
+void prepAndLaunch_schduler(struct Queue* q1, struct Queue* q2, struct Queue* q3, struct Queue* q4, double TSLICE, int NCPU, HistoryEntry history[], int historyIndex){
+    printf("Number of process in q1: %d\n", numProcess1);
+    printf("Number of process in q2: %d\n", numProcess2);
+    printf("Number of process in q3: %d\n", numProcess3);
+    printf("Number of process in q4: %d\n", numProcess4);
+
+    initializeWaitTime(history, historyIndex, 1, TSLICE, 0);
+    initializeWaitTime(history, historyIndex, 2, TSLICE, numProcess1 / NCPU);
+    initializeWaitTime(history, historyIndex, 3, TSLICE, (numProcess2 + numProcess1) / NCPU);
+    initializeWaitTime(history, historyIndex, 4, TSLICE, (numProcess3 + numProcess2 + numProcess1) / NCPU);
+
+    printAllQueue(q1, q2, q3, q4);
+    calWaitTime(q1, TSLICE, NCPU, history, historyIndex);
+    scheduler(&numProcess1, NCPU, TSLICE, q1, q2, &numProcess2, history, historyIndex);
+
+    printAllQueue(q1, q2, q3, q4);
+    calWaitTime(q2, TSLICE, NCPU, history, historyIndex);
+    scheduler(&numProcess2, NCPU, TSLICE, q2, q3, &numProcess3, history, historyIndex);
+
+    printAllQueue(q1, q2, q3, q4);
+    calWaitTime(q3, TSLICE, NCPU, history, historyIndex);
+    scheduler(&numProcess3, NCPU, TSLICE, q3, q4, &numProcess4, history, historyIndex);
+
+    printAllQueue(q1, q2, q3, q4);
+    calWaitTime(q4, TSLICE, NCPU, history, historyIndex);
+    scheduler(&numProcess4, NCPU, TSLICE, q4, q1, &numProcess1, history, historyIndex);
+
 }
