@@ -8,10 +8,10 @@ int fibonacci(int n) {
 }
 
 int main() {
-    int n;
+    int n = 12;
 
-    printf("Enter the value of n: ");
-    scanf("%d", &n);
+    // printf("Enter the value of n: ");
+    // scanf("%d", &n);
 
     if (n < 0) {
         printf("Please enter a non-negative integer.\n");

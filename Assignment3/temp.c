@@ -1,5 +1,3 @@
-// A C program to demonstrate linked list based
-// implementation of queue
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -11,6 +9,7 @@
 #include <sys/time.h>
 #include <stdbool.h>
 // #include "FIBONACCI.h"
+// #define SHM_SIZE 1024
 
 
 // A linked list (LL) node to store a queue entry
@@ -92,8 +91,6 @@ bool isEmpty(struct Queue* q)
     return (q->front == NULL);
 }
 
-
-
 // Function to print all elements in the queue
 void printQueue(struct Queue* q) {
     QNode* current = q->front;
@@ -140,6 +137,15 @@ int main() {
 
     // Register the signal handler for Ctrl+C
     signal(SIGINT, signal_handler);
+
+    // Create a shared memory segment
+    // key_t key = ftok("shmfile", 65);
+    // int shmid = shmget(key, SHM_SIZE, IPC_CREAT | 0666);
+
+    // if (shmid == -1) {
+    //     perror("shmget");
+    //     exit(1);
+    // }
     
     int ncpu, tslice;
     char *input;
@@ -151,10 +157,14 @@ int main() {
     scanf("%d", &tslice);
     getchar();
 
-    struct Queue* q = createQueue();
+    // // Attach shared memory to the process
+    // struct Queue* q = (struct Queue*)shmat(shmid, NULL, 0);
+    
+    struct Queue* q =createQueue();
 
     int arr[] = {45, 10, 3, 2};
     int i = 0;
+    volatile int array[4] = {0};
 
 
     while(true){
@@ -169,17 +179,22 @@ int main() {
             pid_t create_process = fork();
 
             if(create_process == 0){
-                QNode* current = q->front;
+                // QNode* current = q->front;
+                int index = i;
                 int value = fibonacci(arr[i]);
                 printf("Fibonacci value of %d is: %d\n", arr[i], value);
+                array[index] = 1; 
+                printf("status of %d : %d\n", index, array[index]);
                 
-                while (current->pid != create_process) {
-                    current = current->next;
-                }
-                current->state = 1;
-                free(current);
+                // while (current->pid != create_process) {
+                //     current = current->next;
+                // }
+                // printf("Process ends\n");
+                // current->state = 1;
+                // printf("State of end sequence with pid %d : %d\n", current->pid, current->state);
                 
-                printf("State of end sequence with pid %d : %d\n", current->pid, current->state);
+                // free(current);
+                
                 exit(0);
             }
 
@@ -214,13 +229,31 @@ int main() {
             }
             
             else if (child_pid > 0) {
+                // int ind = 0;
+
+                // QNode* current = q->front;
+                // while (current->pid != temp->pid) {
+                //     ++ind;
+                // }
+                // printf("Process ends\n");
+                // current->state = 1;
+                // printf("State of end sequence with pid %d : %d\n", current->pid, current->state);
+                
+                // free(current);                
+
                 sleep(tslice);
 
                 // Stop the child process
                 kill(temp->pid, SIGSTOP);
-                printf("Child process paused\n");
+                // printf("Child process paused\n");
+                // for(int j = 0; j < 4; i++){
+                //     printf("%d ", array[j]);
+                // }
 
-                if(temp->state != 1) enQueue(q, temp->pid);
+                // printf("\n");
+
+                // if(array[ind] != 1)
+                enQueue(q, temp->pid);
             }
             
             else {
@@ -230,6 +263,8 @@ int main() {
 
         }
     }
+
+    // shmdt(q);
 
 
 

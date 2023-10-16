@@ -4,16 +4,18 @@
 int main(void){
     pid_t pid;
 
-    pid = fork();
+    var = fork();
 
     if(pid == -1){
         perror("Unable to Fork\n");
         return 1;
     }
 
-    else if(pid == 0){
+    else if(var == 0){
         sleep(40);
+        printf("")
         printf("This is Child process\n");
+        wait(8)
     }
 
     else{

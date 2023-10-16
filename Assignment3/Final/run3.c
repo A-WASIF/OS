@@ -1,5 +1,3 @@
-// A C program to demonstrate linked list based
-// implementation of queue
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -10,13 +8,35 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <stdbool.h>
-// #include "FIBONACCI.h"
 
+typedef struct {
+    char* command;
+} HistoryEntry;
 
+void addToHistory(HistoryEntry* history, char* command, int index) {
+    history[index].command = strdup(command);
+}
+
+void printHistory(HistoryEntry* history, int historyIndex) {
+    printf("\nCommand History:\n");
+    printf("*****************************************\n");
+    for (int i = 0; i < historyIndex; i++) {
+        printf("%d: %s\n", i + 1, history[i].command);
+        free(history[i].command);  // Free the memory allocated for each command
+    }
+    printf("*****************************************\n");
+}
+void printStatus(int status, pid_t pid, char* command) {
+    if (WIFEXITED(status)) {
+        printf("Process %d (%s) exited with status %d\n", pid, command, WEXITSTATUS(status));
+    } else if (WIFSIGNALED(status)) {
+        printf("Process %d (%s) terminated by signal %d\n", pid, command, WTERMSIG(status));
+    }
+}
 // A linked list (LL) node to store a queue entry
 typedef struct QNode {
 	pid_t pid;
-    // char * command;
+    char * command;
     int state;
     // int priority;
 	struct QNode* next;
@@ -29,11 +49,12 @@ struct Queue {
 };
 
 // A utility function to create a new linked list node.
-QNode* newNode(int k)
+QNode* newNode(int k, char* command)
 {
 	QNode* temp = (QNode*) malloc (sizeof(QNode));
 	temp->pid = k;
     temp->state = 0;
+    temp->command = command;
 	temp->next = NULL;
 	return temp;
 }
@@ -46,11 +67,10 @@ struct Queue* createQueue()
 	return q;
 }
 
-// The function to add a pid k to q
-void enQueue(struct Queue* q, int k)
+void enQueue(struct Queue* q, int k, char* command)
 {
 	// Create a new LL node
-	QNode* temp = newNode(k);
+	QNode* temp = newNode(k, command);
 
 	// If queue is empty, then new node is front and rear
 	// both
@@ -64,13 +84,8 @@ void enQueue(struct Queue* q, int k)
 	q->rear = temp;
 }
 
-// Function to remove a pid from given queue q
 QNode* deQueue(struct Queue* q)
 {
-	// // If queue is empty, return NULL.
-	// if (q->front == NULL)
-	// 	return;
-
     pid_t id = q->front->pid;
 
 	// Store previous front and move front one node ahead
@@ -82,7 +97,6 @@ QNode* deQueue(struct Queue* q)
 	if (q->front == NULL)
 		q->rear = NULL;
 
-	// free(temp);
 
     return temp;
 }
@@ -92,18 +106,18 @@ bool isEmpty(struct Queue* q)
     return (q->front == NULL);
 }
 
-
-
 // Function to print all elements in the queue
 void printQueue(struct Queue* q) {
     QNode* current = q->front;
-    printf("Queue Elements: ");
+    printf("Queue Elements (PID, Command): ");
     while (current != NULL) {
-        printf("%d ", current->pid);
+        printf("(%d, %s) ", current->pid, current->command);
         current = current->next;
     }
     printf("\n");
 }
+
+
 
 void signal_handler(int signum);
 
@@ -126,36 +140,32 @@ char *userinput(){
     return command;
 }
 
-// Fibonacci Program
-int fibonacci(int n) {
-    if (n <= 1) {
-        return n;
-    } else {
-        return fibonacci(n - 1) + fibonacci(n - 2);
-    }
+void launch(char *exact_command){
+    execlp(exact_command, exact_command, NULL);
 }
 
+int min(int a, int b){
+    return a < b ? a : b;
+}
 
-int main() {
-
-    // Register the signal handler for Ctrl+C
-    signal(SIGINT, signal_handler);
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <NCPU> <TSLICE>\n", argv[0]);
+        return 1;
+    }
+    int NCPU = atoi(argv[1]);
+    int TSLICE = atoi(argv[2]);
     
-    int ncpu, tslice;
+    signal(SIGINT, signal_handler);
     char *input;
 
-    printf("Enter Number of CPU's to be used: ");
-    scanf("%d", &ncpu);
-
-    printf("Enter Time Slice: ");
-    scanf("%d", &tslice);
-    getchar();
-
+   
     struct Queue* q = createQueue();
-
-    int arr[] = {45, 10, 3, 2};
-    int i = 0;
-
+    int numProcess = 0;
+    int historySize = 100;
+    HistoryEntry history[historySize];
+    int historyIndex = 0;
+    
 
     while(true){
         input = userinput();
@@ -166,44 +176,38 @@ int main() {
         }
 
         else{
-            pid_t create_process = fork();
+            char* exact_command = input + 7;
 
+            addToHistory(history, exact_command, historyIndex);
+            historyIndex++;
+            
+            pid_t create_process = fork();
+            
             if(create_process == 0){
-                QNode* current = q->front;
-                int value = fibonacci(arr[i]);
-                printf("Fibonacci value of %d is: %d\n", arr[i], value);
-                
-                while (current->pid != create_process) {
-                    current = current->next;
-                }
-                current->state = 1;
-                free(current);
-                
-                printf("State of end sequence with pid %d : %d\n", current->pid, current->state);
+                launch(exact_command);
                 exit(0);
             }
 
             else if(create_process > 0){
                 kill(create_process, SIGSTOP);
-                enQueue(q, create_process);
+                enQueue(q, create_process, exact_command);
+                ++numProcess;
             }
 
             else{
                 perror("Error in forking");
             }
-            printf("%s\n", input + 7);
-            ++i;
         }
     }
 
+    printf("Number of process : %d\n", numProcess);
     printQueue(q);
-
-    printf("%d\n", isEmpty(q));
-
+   
     while(!isEmpty(q)){
-        for(int i = 0; i < ncpu; i++){
+        int process = min(numProcess, NCPU);
+
+        for(int i = 0; i < process; i++){
             QNode* temp = deQueue(q);
-            // pid_t process_id = deQueue(q)->pid;
         
             pid_t child_pid = fork();
 
@@ -214,40 +218,31 @@ int main() {
             }
             
             else if (child_pid > 0) {
-                sleep(tslice);
+
+                sleep(TSLICE);
 
                 // Stop the child process
                 kill(temp->pid, SIGSTOP);
-                printf("Child process paused\n");
 
-                if(temp->state != 1) enQueue(q, temp->pid);
+                int num = 1;
+                int state = waitpid(temp->pid, &num, WNOHANG);
+                if(state == 0) enQueue(q, temp->pid, temp->command);
+                else --numProcess;
             }
             
             else {
                 perror("Fork failed");
-                // exit(1);
             }
-
+        }
+        
+        if(!isEmpty(q)){
+            printf("\n");
+            printQueue(q);
+            printf("\n");
         }
     }
 
-
-
-
-
-    // struct Queue* q = createQueue();
-    // enQueue(q, 10);
-    // enQueue(q, 20);
-    // deQueue(q);
-    // deQueue(q);
-    // enQueue(q, 30);
-    // enQueue(q, 40);
-    // enQueue(q, 50);
-    // deQueue(q);
-
-    // Print all elements in the queue
-    
-
+    printHistory(history, historyIndex);
     return 0;
 }
 

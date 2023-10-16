@@ -16,7 +16,7 @@
 // A linked list (LL) node to store a queue entry
 typedef struct QNode {
 	pid_t pid;
-    // char * command;
+    char * command;
     int state;
     // int priority;
 	struct QNode* next;
@@ -103,6 +103,16 @@ void printQueue(struct Queue* q) {
         current = current->next;
     }
     printf("\n");
+    
+}
+
+void printstatus(struct Queue* q){
+    QNode* current = q->front;
+    while (current != NULL) {
+        printf("%d ", current->state);
+        current = current->next;
+    }
+    printf("\n");
 }
 
 void signal_handler(int signum);
@@ -153,8 +163,9 @@ int main() {
 
     struct Queue* q = createQueue();
 
-    int arr[] = {45, 10, 3, 2};
+    int arr[] = {45, 10, 40, 2};
     int i = 0;
+    volatile int array[] = {0, 0, 0, 0};
 
 
     while(true){
@@ -166,26 +177,39 @@ int main() {
         }
 
         else{
+            char* exact_command = input + 7;
             pid_t create_process = fork();
+            
 
             if(create_process == 0){
+                enQueue(q, getpid());
+
                 QNode* current = q->front;
-                int value = fibonacci(arr[i]);
-                printf("Fibonacci value of %d is: %d\n", arr[i], value);
+                // volatile int index = i;
+
+                 execlp(exact_command, exact_command, NULL);
+
+
+                // int value = fibonacci(arr[i]);
+                // printf("Fibonacci value of %d is: %d\n", arr[i], value);
                 
-                while (current->pid != create_process) {
+                // array[index] = 1;
+                // printf("status of %d : %d\n", index, array[index]);
+
+                while (current->pid != getpid()) {
+                    // printf("pif:%d and child%d\n",current->pid,getpid());
                     current = current->next;
                 }
                 current->state = 1;
                 free(current);
                 
-                printf("State of end sequence with pid %d : %d\n", current->pid, current->state);
+                // printf("State of end sequence with pid %d : %d\n", current->pid, current->state);
                 exit(0);
             }
 
             else if(create_process > 0){
                 kill(create_process, SIGSTOP);
-                enQueue(q, create_process);
+                
             }
 
             else{
@@ -214,12 +238,27 @@ int main() {
             }
             
             else if (child_pid > 0) {
+                // int ind = 0;
+                // QNode* current = q->front;
+                // while (current->pid != temp->pid) {
+                //     ++ind;
+                // }
+                // free(current);
+
                 sleep(tslice);
 
                 // Stop the child process
                 kill(temp->pid, SIGSTOP);
                 printf("Child process paused\n");
 
+                // for(int j = 0; j < 4; i++){
+                //     printf("%d ", array[j]);
+                // }
+
+                // printf("\n");
+
+                // if(array[ind] != 1) enQueue(q, temp->pid);
+                printstatus(q);
                 if(temp->state != 1) enQueue(q, temp->pid);
             }
             

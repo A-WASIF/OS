@@ -16,7 +16,7 @@
 // A linked list (LL) node to store a queue entry
 typedef struct QNode {
 	pid_t pid;
-    // char * command;
+    char * command;
     int state;
     // int priority;
 	struct QNode* next;
@@ -29,11 +29,12 @@ struct Queue {
 };
 
 // A utility function to create a new linked list node.
-QNode* newNode(int k)
+QNode* newNode(int k, char* command)
 {
 	QNode* temp = (QNode*) malloc (sizeof(QNode));
 	temp->pid = k;
     temp->state = 0;
+    temp->command = command;
 	temp->next = NULL;
 	return temp;
 }
@@ -47,10 +48,10 @@ struct Queue* createQueue()
 }
 
 // The function to add a pid k to q
-void enQueue(struct Queue* q, int k)
+void enQueue(struct Queue* q, int k, char* command)
 {
 	// Create a new LL node
-	QNode* temp = newNode(k);
+	QNode* temp = newNode(k, command);
 
 	// If queue is empty, then new node is front and rear
 	// both
@@ -100,6 +101,16 @@ void printQueue(struct Queue* q) {
     printf("Queue Elements: ");
     while (current != NULL) {
         printf("%d ", current->pid);
+        current = current->next;
+    }
+    printf("\n");
+    
+}
+
+void printstatus(struct Queue* q){
+    QNode* current = q->front;
+    while (current != NULL) {
+        printf("%d ", current->state);
         current = current->next;
     }
     printf("\n");
@@ -153,8 +164,9 @@ int main() {
 
     struct Queue* q = createQueue();
 
-    int arr[] = {45, 10, 3, 2};
+    int arr[] = {45, 10, 40, 2};
     int i = 0;
+    volatile int array[] = {0, 0, 0, 0};
 
 
     while(true){
@@ -166,26 +178,34 @@ int main() {
         }
 
         else{
+            char* exact_command = input + 7;
             pid_t create_process = fork();
+            
 
             if(create_process == 0){
+
                 QNode* current = q->front;
-                int value = fibonacci(arr[i]);
-                printf("Fibonacci value of %d is: %d\n", arr[i], value);
+                // volatile int index = i;
+
+                execlp(exact_command, exact_command, NULL);
+
+
+                // int value = fibonacci(arr[i]);
+                // printf("Fibonacci value of %d is: %d\n", arr[i], value);
                 
-                while (current->pid != create_process) {
+                while (current->pid != getpid()) {
                     current = current->next;
                 }
                 current->state = 1;
                 free(current);
                 
-                printf("State of end sequence with pid %d : %d\n", current->pid, current->state);
                 exit(0);
             }
 
             else if(create_process > 0){
                 kill(create_process, SIGSTOP);
-                enQueue(q, create_process);
+                enQueue(q, getpid(), exact_command);
+                
             }
 
             else{
@@ -214,13 +234,31 @@ int main() {
             }
             
             else if (child_pid > 0) {
+                // int ind = 0;
+                // QNode* current = q->front;
+                // while (current->pid != temp->pid) {
+                //     ++ind;
+                // }
+                // free(current);
+
                 sleep(tslice);
 
                 // Stop the child process
                 kill(temp->pid, SIGSTOP);
                 printf("Child process paused\n");
 
-                if(temp->state != 1) enQueue(q, temp->pid);
+                // for(int j = 0; j < 4; i++){
+                //     printf("%d ", array[j]);
+                // }
+
+                // printf("\n");
+
+                // if(array[ind] != 1) enQueue(q, temp->pid);
+                printstatus(q);
+                if(temp->state != 1){
+                    enQueue(q, temp->pid, temp->command);
+                    free(temp);
+                }
             }
             
             else {
@@ -230,24 +268,7 @@ int main() {
 
         }
     }
-
-
-
-
-
-    // struct Queue* q = createQueue();
-    // enQueue(q, 10);
-    // enQueue(q, 20);
-    // deQueue(q);
-    // deQueue(q);
-    // enQueue(q, 30);
-    // enQueue(q, 40);
-    // enQueue(q, 50);
-    // deQueue(q);
-
-    // Print all elements in the queue
     
-
     return 0;
 }
 
