@@ -220,11 +220,11 @@ int main(int argc, char *argv[]) {
         if(strcmp(input, "exit") == 0) break;
 
         else if(strcmp(input, "run") == 0){
-            sem_wait(&shm->mutex);
+            // sem_wait(&shm->mutex);
 
             while(!isEmpty(q1) || !isEmpty(q2) || !isEmpty(q3) || !isEmpty(q4)) prepAndLaunch_schduler(q1, q2, q3, q4, TSLICE, NCPU, history, historyIndex);
 
-            sem_post(&shm->mutex);
+            // sem_post(&shm->mutex);
         }
         
         else if(strncmp(input, "submit ", 7) != 0){

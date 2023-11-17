@@ -366,7 +366,7 @@ char *userinput(){
     }
 
     else{
-        printf("SimpleShell$ ");        
+        printf("SimpleShell$ ");
         fgets(command, size, stdin);
         command[strcspn(command, "\n")] = '\0';
     }
@@ -418,6 +418,7 @@ void launch(char *exact_command){
 
 void signal_handler(int signum) {
     printf("\nCtrl+C detected.\n");
+    if (!isEmpty(q1) || !isEmpty(q2) || !isEmpty(q3) || !isEmpty(q4)) exit(0);
 }
 
 void scheduler(int* numProcess, int NCPU, double TSLICE, struct Queue* q, struct Queue* Q, int *Qnum, HistoryEntry history[], int historyIndex){
@@ -505,5 +506,7 @@ void prepAndLaunch_schduler(struct Queue* q1, struct Queue* q2, struct Queue* q3
     printAllQueue(q1, q2, q3, q4);
     calWaitTime(q4, TSLICE, NCPU, history, historyIndex);
     scheduler(&numProcess4, NCPU, TSLICE, q4, q1, &numProcess1, history, historyIndex);
+    printHistory(history, historyIndex);
 
+    exit(0);
 }

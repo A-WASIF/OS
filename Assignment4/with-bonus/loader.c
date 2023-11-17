@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
     printf("Total Number Of Page Faults : %d\n", pageFault);
     printf("Total Number Of Page Allocations : %d\n", totalPages);
-    printf("Internal Fragmentation : %d KB\n", internalFragmentation);
+    printf("Internal Fragmentation : %d Bytes\n", internalFragmentation);
     printf("END!\n");
 
     return 0;
@@ -174,6 +174,10 @@ void segfault_handler(int signal, siginfo_t *info, void *context)
 {
     ucontext_t *uc = (ucontext_t *)context;
     void *fault_address = (void *)info->si_addr;
+
+    // Print the faulting address
+    // printf("Segmentation fault at address: %p\n", fault_address);
+
     // Check which segment caused the segmentation fault
     for (int i = 0; i < ehdr->e_phnum; i++)
     {

@@ -82,7 +82,6 @@ int main(int argc, char** argv){
   printf("Total Number Of Page Allocations : %d\n", totalPages);
   printf("Total Memory Allocated : %zu\n", totalMeomorySize);
   printf("Internal Fragmentation : %d Bytes\n", internalFragmentation);
-  // printf("Internal Fragmentation : %d\n", totalMemorySize);
   printf("END!\n");
   
   return 0;
@@ -124,7 +123,7 @@ void load_and_run_elf(char** argv){
     exit(1);
   }
 
-  printf("starting address : %p\n", ehdr -> e_entry);
+  // printf("starting address : %p\n", ehdr -> e_entry);
 
   loop_through_phdr(ehdr, phdr);
 }
@@ -161,7 +160,7 @@ void segfault_handler(int signal, siginfo_t *info, void *context) {
   void *fault_address = (void *)info->si_addr;
 
   // Print the faulting address
-  printf("Segmentation fault at address: %p\n", fault_address);
+  // printf("Segmentation fault at address: %p\n", fault_address);
 
   for (int i = 0; i < ehdr->e_phnum; i++){
     if((int)fault_address <= phdr[i].p_vaddr + phdr[i].p_memsz && (int)fault_address >= phdr[i].p_vaddr){
@@ -174,7 +173,7 @@ void segfault_handler(int signal, siginfo_t *info, void *context) {
       lseek(fd, phdr[i].p_offset, SEEK_SET);
       read(fd, virtual_mem, phdr[i].p_memsz);
 
-      printf("---------------------------------%d %d\n", allocationSize, phdr[i].p_memsz);
+      // printf("---------------------------------%d %d\n", allocationSize, phdr[i].p_memsz);
 
       internalFragmentation += (allocationSize - ((int)phdr[i].p_memsz));
       // totalMemorySize += phdr[i].p_vaddr / 1024;

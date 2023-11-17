@@ -1,4 +1,4 @@
-#define SIZE 1024
+#define SIZE 4096
 int __attribute__((aligned(4096))) A[SIZE] = { 0 };
 int sum = 0;
 
